@@ -5,7 +5,7 @@ def isentropic_relations(R=None, M=None, T=None, P=None, rho=None, a=None, gamma
 
     """
     Computes isentropic flow properties given various inputs.
-    Optionally calculates absolute values if stagnation conditions are provided.
+    Computes flow properties at one state.
     """
 
     isentropic_inputs = [R, M, T, P, rho, a, gamma, P0, T0, rho0, \
@@ -87,7 +87,6 @@ def isentropic_relations(R=None, M=None, T=None, P=None, rho=None, a=None, gamma
         
         isentropic_inputs = [R, M, T, P, rho, a, gamma, P0, T0, rho0, \
         a0, P_star, T_star, rho_star, a_star]
-        print(isentropic_inputs)
 
     return {
         "R": R,
