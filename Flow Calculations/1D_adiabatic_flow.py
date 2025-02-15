@@ -2,9 +2,8 @@ import math
 
 def adiabatic_relations(R=None, gamma=1.4, q=None, M_upstream=None, M_downstream=None, T_upstream=None, T_downstream=None, \
         P_upstream=None, P_downstream=None, rho_upstream=None, rho_downstream=None, T0_upstream=None, T0_downstream=None, \
-        P0_upstream=None, P0_downstream=None, rho0_upstream=None, rho0_downstream=None, T_star_upstream=None, T_star_downstream=None, \
-        P_star_upstream=None, P_star_downstream=None, rho_star_upstream=None, rho_star_downstream=None, a_upstream=None, \
-        a_downstream=None, a0_upstream=None, a0_downstream=None, a_star_upstream=None, a_star_downstream=None):
+        P0_upstream=None, P0_downstream=None, rho0_upstream=None, rho0_downstream=None, T_star=None, P_star=None, \
+        rho_star=None, a_upstream=None, a_downstream=None, a0_upstream=None, a0_downstream=None, a_star=None):
 
     """
     Computes adiabatic flow properties given various inputs.
@@ -12,23 +11,103 @@ def adiabatic_relations(R=None, gamma=1.4, q=None, M_upstream=None, M_downstream
     """
 
     Cp = (gamma * R)/(gamma - 1)
+
+    M_star = None
+    T0_star = None
+    P0_star = None
+    P_ratio = None
+    T_ratio = None  
+
     adiabatic_inputs = [R, gamma, q, M_upstream, M_downstream, T_upstream, T_downstream, \
         P_upstream, P_downstream, rho_upstream, rho_downstream, T0_upstream, T0_downstream, \
-        P0_upstream, P0_downstream, rho0_upstream, rho0_downstream, T_star_upstream, T_star_downstream, \
-        P_star_upstream, P_star_downstream, rho_star_upstream, rho_star_downstream, a_upstream, \
-        a_downstream, a0_upstream, a0_downstream, a_star_upstream, a_star_downstream]
+        P0_upstream, P0_downstream, rho0_upstream, rho0_downstream, T_star, P_star, rho_star, \
+        a_upstream, a_downstream, a0_upstream, a0_downstream, a_star, M_star, T0_star, P0_star,\
+        P_ratio, T_ratio]
     
     while None in adiabatic_inputs:
         
         # Compute Upstream Mach
+        if M_upstream is None and M_downstream is not None and P_upstream is not None and P_downstream is not None:
+            M_upstream = math.sqrt(gamma * (M_downstream ** 2) * P_downstream + P_downstream - P_upstream) / \
+                (math.sqrt(gamma) * math.sqrt(P_upstream))
+        if M_upstream is None and M_downstream is not None and T_upstream is not None and T_downstream is not None:
+            M_upstream = math.sqrt((math.sqrt(T_downstream * (gamma * M_downstream ** 2 + 1) ** 2 * (-4 * T_upstream * gamma * M_downstream ** 2\
+                        + gamma ** 2 * M_downstream ** 4 * T_downstream + 2 * gamma * M_downstream ** 2 * T_downstream + T_downstream)\
+                        - 2 * T_upstream * gamma * M_downstream ** 2 + gamma ** 2 * M_downstream ** 4 * T_downstream + 2 * gamma \
+                        * M_downstream ** 2 * T_downstream + T_downstream) / (T_upstream * gamma ** 2 * M_downstream ** 2)) / math.sqrt(2))
+        if M_upstream is None and rho_upstream is not None and rho_downstream is not None:
+            M_upstream = (M_downstream * math.sqrt(rho_downstream)) / math.sqrt(rho_upstream * gamma * M_downstream ** 2 + rho_upstream \
+                        - gamma * M_downstream ** 2 * rho_downstream)
         
+        if M_upstream is None and P_upstream is not None and P_star is not None:
+            M_upstream = (math.sqrt(P_upstream - P_star * (gamma + 1)) * math.sqrt(-1 / gamma)) / math.sqrt(P_upstream)
+        if M_upstream is None and rho_upstream is not None and rho_star is not None:
+            M_upstream = math.sqrt(rho_star) / math.sqrt(rho_upstream * (gamma + 1) - rho_upstream * gamma)
+        if M_upstream is None and T_upstream is not None and T_star is not None:
+            M_upstream = math.sqrt((gamma * math.sqrt(T_star) * math.sqrt(gamma ** 2 * T_star - 4 * gamma * T_upstream + 2 * gamma * T_star + T_star) \
+                        - math.sqrt(T_star) * math.sqrt(gamma ** 2 * T_star - 4 * gamma * T_upstream + 2 * gamma * T_star + T_star) + gamma ** 2 \
+                        * T_star - 2 * gamma * T_upstream + 2 * gamma * T_star + T_star) / (gamma ** 2 * T_upstream)) / math.sqrt(2)
+        
+        if M_upstream is None and T_upstream is not None and T0_upstream is not None:
+            M_upstream = math.sqrt((T0_upstream / T_upstream - 1) * 2 / (gamma - 1))
+
+        if M_upstream is None and M_downstream is not None and T0_downstream is not None and T0_upstream is not None:
+            M_upstream = math.sqrt(math.sqrt(T0_downstream) * math.sqrt(T0_downstream * (M_downstream ** 2 * gamma + 1) ** 2 - M_downstream ** 2 * T0_upstream\
+                        * (gamma + 1) * (M_downstream ** 2 * gamma - M_downstream ** 2 + 2)) * (M_downstream ** 2 * gamma + 1) + T0_downstream \
+                        * (M_downstream ** 2 * gamma + 1) ** 2 - M_downstream ** 2 * T0_upstream * gamma * (M_downstream ** 2 * gamma - M_downstream ** 2\
+                        + 2)) * math.sqrt(-1 / (T0_downstream * (gamma - 1) * (M_downstream ** 2 * gamma - 1) ** 2 - M_upstream ** 2 * T0_downstream \
+                        * gamma ** 2 *(M_downstream ** 2 * gamma - M_downstream ** 2 + 2)))
+
+        if M_star is None and M_upstream is not None and T0_upstream is not None and T_upstream is not None:
+            M_star = M_upstream / math.sqrt(T0_upstream / T_upstream)
+        if M_upstream is None and M_star is not None and T0_upstream is not None and T_upstream is not None:
+            M_upstream = M_star * math.sqrt(T0_upstream / T_upstream)
+
         # Compute Downstream Mach
+        if M_downstream is None and M_upstream is not None and P_upstream is not None and P_downstream is not None:
+            M_downstream = (math.sqrt(-1 / gamma) * math.sqrt(P_downstream - P_upstream * (gamma * (M_upstream\
+                 ** 2) + 1))) / math.sqrt(P_downstream)
+        if M_downstream is None and M_upstream is not None and T_upstream is not None and T_downstream is not None:
+            M_downstream = math.sqrt((T_upstream * gamma ** 2 * M_upstream ** 4 - math.sqrt(T_upstream) * gamma * M_upstream ** 2\
+                * math.sqrt(T_upstream * gamma ** 2 * M_upstream ** 4 + 2 * T_upstream * gamma * M_upstream ** 2 + T_upstream \
+                - 4 * gamma * M_upstream ** 2 * T_downstream) - math.sqrt(T_upstream) * math.sqrt(T_upstream * gamma ** 2 * M_upstream ** 4 \
+                + 2 * T_upstream * gamma * M_upstream ** 2 + T_upstream - 4 * gamma * M_upstream ** 2 * T_downstream) + 2 * T_upstream \
+                * gamma * M_upstream ** 2 + T_upstream - 2 * gamma * M_upstream ** 2 * T_downstream) / (gamma ** 2 * M_upstream ** 2 \
+                * T_downstream)) / math.sqrt(2)
+        if M_downstream is None and rho_upstream is not None and rho_downstream is not None:
+            M_downstream = (math.sqrt(rho_upstream) * M_upstream) / math.sqrt(-rho_upstream * gamma * M_upstream ** 2 + gamma * M_upstream ** 2 \
+                            * rho_downstream + rho_downstream)
+        
+        if M_downstream is None and P_downstream is not None and P_star is not None:
+            M_downstream = (math.sqrt(P_downstream - P_star * (gamma + 1)) * math.sqrt(-1 / gamma)) / math.sqrt(P_downstream)
+        if M_downstream is None and rho_downstream is not None and rho_star is not None:
+            M_downstream = math.sqrt(rho_star) / math.sqrt(rho_downstream * (gamma + 1) - rho_downstream * gamma)
+        if M_downstream is None and T_downstream is not None and T_star is not None:
+            M_downstream = math.sqrt((gamma * math.sqrt(T_star) * math.sqrt(gamma ** 2 * T_star - 4 * gamma * T_downstream + 2 * gamma * T_star + T_star) \
+                        - math.sqrt(T_star) * math.sqrt(gamma ** 2 * T_star - 4 * gamma * T_downstream + 2 * gamma * T_star + T_star) + gamma ** 2 \
+                        * T_star - 2 * gamma * T_downstream + 2 * gamma * T_star + T_star) / (gamma ** 2 * T_downstream)) / math.sqrt(2)
+        
+        if M_downstream is None and T_downstream is not None and T0_downstream is not None:
+            M_downstream = math.sqrt((T0_downstream / T_downstream - 1) * 2 / (gamma - 1))
+
+        if M_downstream is None and M_upstream is not None and T0_downstream is not None and T0_upstream is not None:
+            M_downstream = math.sqrt(-1 / math.sqrt(M_upstream ** 4 * (T0_downstream - T0_upstream) * gamma ** 2 * (gamma - 1) + 2 * M_upstream ** 2 \
+                            * (T0_downstream * gamma - T0_upstream * (gamma - 1)) * gamma - T0_upstream * (gamma - 1))) * math.sqrt(math.sqrt(\
+                            M_upstream ** 4 * (T0_downstream * (gamma - 1) * (gamma + 1) - T0_upstream * gamma ** 2) + 2 * M_upstream ** 2 * (T0_downstream\
+                            * (gamma + 1) - T0_upstream * gamma) - T0_upstream) * math.abs(M_upstream ** 2 * gamma + 1) * math.sqrt(-T0_upstream) \
+                            + M_upstream ** 4 * (T0_downstream * (gamma - 1) - T0_upstream * gamma) * gamma + 2 * M_upstream ** 2 * (T0_downstream\
+                            - T0_upstream) * gamma - T0_upstream)
+
+        if M_star is None and M_downstream is not None and T0_downstream is not None and T_downstream is not None:
+            M_star = M_downstream / math.sqrt(T0_downstream / T_downstream)
+        if M_downstream is None and M_star is not None and T0_downstream is not None and T_downstream is not None:
+            M_downstream = M_star * math.sqrt(T0_downstream / T_downstream) 
         
         # Compute missing upstream values
         if a_upstream is None and T_upstream is not None:
             a_upstream = math.sqrt(gamma * R * T_upstream)
-        if a0_upstream is not None and T_star_upstream is not None and T0_upstream is not None:
-            a_star_upstream = (a0_upstream * math.sqrt(T_star_upstream))/(math.sqrt(T0_upstream))
+        if a0_upstream is not None and T_star is not None and T0_upstream is not None:
+            a_star = (a0_upstream * math.sqrt(T_star))/(math.sqrt(T0_upstream))
         if T0_upstream is not None:
             a0_upstream = math.sqrt(gamma * R * T0_upstream)
             
@@ -51,32 +130,86 @@ def adiabatic_relations(R=None, gamma=1.4, q=None, M_upstream=None, M_downstream
             rho_upstream = rho_downstream / (((1 + gamma * (M_downstream ** 2)) / (1 + gamma * (M_upstream ** 2))) * \
                 ((M_upstream / M_downstream) ** 2))
         
+        if T_upstream is None and T0_upstream is not None and M_upstream is not None:
+            T_upstream = T0_upstream / (1 + (gamma - 1) / 2 * M_upstream ** 2)
+            
+        if T0_upstream is None and T0_downstream is not None and q is not None:
+            T0_upstream = T0_downstream - q / Cp
+        if T0_upstream is None and T_upstream is not None and M_upstream is not None:
+            T0_upstream = T_upstream * (1 + (gamma - 1) / 2 * M_upstream ** 2)
+        
+        if P0_upstream is None and T_upstream is not None and M_upstream is not None:
+            P0_upstream = (T_upstream * (1 + (gamma - 1) / 2 * M_upstream ** 2)) ** (gamma / (gamma - 1))
+        
+        if rho0_upstream is None and T_upstream is not None and M_upstream is not None:
+            rho0_upstream = (T_upstream * (1 + (gamma - 1) / 2 * M_upstream ** 2)) ** (1 / (gamma - 1))
+        
+        if T_star is None and T_upstream is not None and M_upstream is not None:
+            T_star = T_upstream / ((M_upstream ** 2) * (1 + gamma) / 1 + gamma * (M_upstream ** 2))
+        if P_star is None and P_upstream is not None and M_upstream is not None:
+            P_star = P_upstream / ((1 + gamma) / 1 + gamma * (M_upstream ** 2))
+        if rho_star is None and rho_upstream is not None and M_upstream is not None:
+            rho_star = rho_upstream / M_upstream * ((1 + gamma * (M_upstream ** 2)) / (1 + gamma))
+        
+        if T0_star is None and T0_upstream is not None and M_upstream is not None:
+            T0_star = T0_upstream / (((gamma + 1) * M_upstream ** 2) / (1 + gamma * (M_upstream ** 2)) * (2 + (gamma - 1) * (M_upstream ** 2)))
+        if P0_star is None and P0_upstream is not None and M_upstream is not None:
+            P0_star = P0_upstream / (((1 + gamma) / (1 + gamma * (M_upstream ** 2))) * ((2 + (gamma - 1) * M_upstream ** 2) / (gamma + 1)) ** (gamma / (gamma - 1)))
+        
         # Compute missing downstream values
         if a_downstream is None and T_downstream is not None:
             a_downstream = math.sqrt(gamma * R * T_downstream)
-        if a0_downstream is not None and T_star_downstream is not None and T0_downstream is not None:
-            a_star_downstream = (a0_downstream * math.sqrt(T_star_downstream))/(math.sqrt(T0_downstream))
+        if a0_downstream is not None and T_star is not None and T0_downstream is not None:
+            a_star = (a0_downstream * math.sqrt(T_star))/(math.sqrt(T0_downstream))
         if T0_downstream is not None:
             a0_downstream = math.sqrt(gamma * R * T0_downstream)
             
         if rho_downstream is None and P_upstream is not None and P_downstream is not None \
             and T_upstream is not None and T_downstream is not None and rho_upstream is not None:
-            rho_downstream = 
+            rho_downstream = (rho_upstream * P_downstream * T_upstream) / (P_upstream * T_downstream)
         if P_downstream is None and rho_upstream is not None and rho_downstream is not None \
             and P_upstream is not None and T_upstream is not None and T_downstream is not None:
-            P_downstream = 
+            P_downstream = (rho_downstream * P_upstream * T_downstream) / (rho_upstream * T_upstream)
         if T_downstream is None and rho_upstream is not None and rho_downstream is not None \
             and P_upstream is not None and P_downstream is not None and T_upstream is not None:
-            T_downstream = 
+            T_downstream = (rho_upstream * P_downstream * T_upstream) / (rho_downstream * P_upstream)
         
-        if P_upstream is None and P_downstream is not None and M_upstream is not None and M_downstream is not None:
-            P_upstream = P_downstream / ((1 + gamma * (M_upstream ** 2)) / (1 + gamma * (M_downstream ** 2)))
-        if T_upstream is None and T_downstream is not None and M_upstream is not None and M_downstream is not None:
-            T_upstream = T_downstream / (((1 + gamma * (M_upstream ** 2)) / (1 + gamma * (M_downstream ** 2))) * \
+        if P_downstream is None and P_upstream is not None and M_upstream is not None and M_downstream is not None:
+            P_downstream = P_upstream * ((1 + gamma * (M_upstream ** 2)) / (1 + gamma * (M_downstream ** 2)))
+        if T_downstream is None and T_upstream is not None and M_upstream is not None and M_downstream is not None:
+            T_downstream = T_upstream * (((1 + gamma * (M_upstream ** 2)) / (1 + gamma * (M_downstream ** 2))) * \
                 ((M_downstream / M_upstream) ** 2))
-        if rho_upstream is None and rho_downstream is not None and M_upstream is not None and M_downstream is not None:
-            rho_upstream = rho_downstream / (((1 + gamma * (M_downstream ** 2)) / (1 + gamma * (M_upstream ** 2))) * \
+        if rho_downstream is None and rho_upstream is not None and M_upstream is not None and M_downstream is not None:
+            rho_downstream = rho_upstream * (((1 + gamma * (M_downstream ** 2)) / (1 + gamma * (M_upstream ** 2))) * \
                 ((M_upstream / M_downstream) ** 2))
+        
+        if T_downstream is None and T0_downstream is not None and M_downstream is not None:
+            T_downstream = T0_downstream / (1 + (gamma - 1) / 2 * M_downstream ** 2)
+        
+        if T0_downstream is None and T0_upstream is not None and q is not None:
+            T0_downstream = q / Cp - T0_upstream
+        if T0_downstream is None and T_downstream is not None and M_downstream is not None:
+            T0_downstream = T_downstream * (1 + (gamma - 1) / 2 * M_downstream ** 2)
+        
+        if P0_downstream is None and T_downstream is not None and M_downstream is not None:
+            P0_downstream = (T_downstream * (1 + (gamma - 1) / 2 * M_downstream ** 2)) ** (gamma / (gamma - 1))
+        
+        if rho0_downstream is None and T_downstream is not None and M_downstream is not None:
+            rho0_downstream = (T_downstream * (1 + (gamma - 1) / 2 * M_downstream ** 2)) ** (1 / (gamma - 1))
+        
+        if T_star is None and T_downstream is not None and M_downstream is not None:
+            T_star = T_downstream / ((M_downstream ** 2) * (1 + gamma) / 1 + gamma * (M_downstream ** 2))
+        if P_star is None and P_downstream is not None and M_downstream is not None:
+            P_star = P_downstream / ((1 + gamma) / 1 + gamma * (M_downstream ** 2))
+        if rho_star is None and rho_downstream is not None and M_downstream is not None:
+            rho_star = rho_downstream / M_downstream * ((1 + gamma * (M_downstream ** 2)) / (1 + gamma))
+        
+        if T0_star is None and T0_downstream is not None and M_downstream is not None:
+            T0_star = T0_downstream / (((gamma + 1) * M_downstream ** 2) / (1 + gamma * (M_downstream ** 2)) \
+                * (2 + (gamma - 1) * (M_downstream ** 2)))
+        if P0_star is None and P0_downstream is not None and M_downstream is not None:
+            P0_star = P0_downstream / (((1 + gamma) / (1 + gamma * (M_downstream ** 2))) * ((2 + (gamma - 1) \
+                * M_downstream ** 2) / (gamma + 1)) ** (gamma / (gamma - 1)))
         
         # Compute missing flow values
         if q is None and T0_upstream is not None and T0_downstream is not None:
@@ -90,54 +223,14 @@ def adiabatic_relations(R=None, gamma=1.4, q=None, M_upstream=None, M_downstream
             T_ratio = (((1 + gamma * (M_upstream ** 2)) / (1 + gamma * (M_downstream ** 2))) ** 2) * \
                 ((M_downstream / M_upstream) ** 2) * ((1 + (gamma - 1) / 2 * (M_downstream ** 2)) / \
                 (1 + (gamma - 1) * (M_upstream ** 2)))
-            
-            
-            
-        if M is not None:
-            T_ratio = 1 + (gamma - 1) / 2 * M ** 2
-            P_ratio = T_ratio ** (gamma / (gamma - 1))
-            rho_ratio = T_ratio ** (1 / (gamma - 1))
-            M_star = M / math.sqrt(T_ratio)
-            T_star_ratio = 1 / T_ratio ** 2
-            P_star_ratio = T_star_ratio ** (gamma / (gamma - 1))
-            rho_star_ratio = T_star_ratio ** (1 / (gamma - 1))
-        if T is None and T0 is not None and M is not None:
-            T = T0 / T_ratio
-        if P is None and P0 is not None and M is not None:
-            P = P0 / P_ratio
-        if rho is None and rho0 is not None and M is not None:
-            rho = rho0 / rho_ratio
-        if T0 is None and T is not None and M is not None:
-            T0 = T * T_ratio
-        if P0 is None and P is not None and M is not None:
-            P0 = P * P_ratio
-        if rho0 is None and rho is not None and M is not None:
-            rho0 = rho * rho_ratio
-        if M is not None and T0 is not None:
-            T_star = T0 * T_star_ratio
-        if M is not None and P0 is not None:
-            P_star = P0 * P_star_ratio
-        if M is not None and rho0 is not None:
-            rho_star = rho0 * rho_star_ratio
-        if P is None and rho is not None and P0 is not None:
-            P = P0 * (rho / rho0) ** gamma
-        if P is None and T is not None and P0 is not None:
-            P = P0 * T * ((T / T0) ** (1 / (gamma - 1))) / T0
-        if rho is None and T is not None and rho0 is not None:
-            rho = rho0 * ((T * (T / T0) ** (1 / (gamma - 1))) / \
-                T0) ** (1 / gamma)
-        if rho is None and P is not None and rho0 is not None:
-            rho = rho0 * (P / P0) ** (1 / gamma)
-        if T is None and P is not None and T0 is not None:
-            T = T0 / ((P0 / P) ** ((gamma - 1)/ gamma))
-        if T is None and rho is not None and T0 is not None:
-            T = T0 / (((rho0 / rho) ** gamma) ** ((gamma - 1) / gamma))
         
         adiabatic_inputs = [R, gamma, q, M_upstream, M_downstream, T_upstream, T_downstream, \
         P_upstream, P_downstream, rho_upstream, rho_downstream, T0_upstream, T0_downstream, \
-        P0_upstream, P0_downstream, rho0_upstream, rho0_downstream, T_star_upstream, T_star_downstream, \
-        P_star_upstream, P_star_downstream, rho_star_upstream, rho_star_downstream, a_upstream, \
-        a_downstream, a0_upstream, a0_downstream, a_star_upstream, a_star_downstream]
+        P0_upstream, P0_downstream, rho0_upstream, rho0_downstream, T_star, P_star, rho_star, \
+        a_upstream, a_downstream, a0_upstream, a0_downstream, a_star, M_star, T0_star, P0_star,\
+        P_ratio, T_ratio]
+
+        print(adiabatic_inputs)
 
     return {
         "R": R,
@@ -162,22 +255,13 @@ def adiabatic_relations(R=None, gamma=1.4, q=None, M_upstream=None, M_downstream
         "Downstream Stagnation Density (rho0)": rho0_downstream,
         "Upstream Stagnation Speed of Sound (a0)": a0_upstream,
         "Downstream Stagnation Speed of Sound (a0)": a0_downstream,
-        "Upstream Star Temperature Ratio (T*/T0)": T_star_ratio_upstream,
-        "Downstream Star Temperature Ratio (T*/T0)": T_star_ratio_downstream,
-        "Upstream Star Pressure Ratio (P*/P0)": P_star_ratio_upstream,
-        "Downstream Star Pressure Ratio (P*/P0)": P_star_ratio_downstream,
-        "Upstream Star Density Ratio (rho*/rho0)": rho_star_ratio_upstream,
-        "Downstream Star Density Ratio (rho*/rho0)": rho_star_ratio_downstream,
-        "Upstream Star Mach (M*)": M_star_upstream,
-        "Downstream Star Mach (M*)": M_star_downstream,
-        "Upstream Star Temperature (T*)": T_star_upstream,
-        "Downstream Star Temperature (T*)": T_star_downstream,
-        "Upstream Star Pressure (P*)": P_star_upstream,
-        "Downstream Star Pressure (P*)": P_star_downstream,
-        "Upstream Star Density (rho*)": rho_star_upstream,
-        "Downstream Star Density (rho*)": rho_star_downstream,
-        "Upstream Star Speed of Sound (a*)": a_star_upstream,
-        "Downstream Star Speed of Sound (a*)": a_star_downstream
+        "Star Mach (M*)": M_star,
+        "Star Temperature (T*)": T_star,
+        "Star Pressure (P*)": P_star,
+        "Star Density (rho*)": rho_star,
+        "Star Speed of Sound (a*)": a_star,
+        "Stagnation Star Temperature (T0*)": T0_star,
+        "Stagnation Star Pressure (P0*)": P0_star
     }
 
 def main():
@@ -207,16 +291,11 @@ def main():
     rho0_downstream = input("Enter downstream stagnation density (rho0) or press enter to skip: ")
     
     # Optional star conditions
-    P_star_upstream = input("Enter upstream star pressure (P*) or press enter to skip: ")
-    T_star_upstream = input("Enter upstream star temperature (T*) or press enter to skip: ")
-    rho_star_upstream = input("Enter upstream star density (rho*) or press enter: ")
+    P_star = input("Enter star pressure (P*) or press enter to skip: ")
+    T_star = input("Enter star temperature (T*) or press enter to skip: ")
+    rho_star = input("Enter star density (rho*) or press enter: ")
     
-    P_star_downstream = input("Enter downstream star pressure (P*) or press enter to skip: ")
-    T_star_downstream = input("Enter downstream star temperature (T*) or press enter to skip: ")
-    rho_star_downstream = input("Enter downstream star density (rho*) or press enter: ")
-    
-    a_star_upstream = input("Enter upstream star speed of sound (a*) or press enter: ")
-    a_star_downstream = input("Enter downstream star speed of sound (a*) or press enter: ")
+    a_star= input("Enter star speed of sound (a*) or press enter: ")
     a_upstream = input("Enter upstream speed of sound (or press enter to skip): ")
     a_downstream = input("Enter downstream speed of sound (or press enter to skip): ")
     a0_upstream = input("Enter upstream stagnation speed of sound (a0) or press enter to skip: ")
@@ -243,20 +322,15 @@ def main():
     T0_downstream = float(T0_downstream) if T0_downstream else None
     rho0_downstream = float(rho0_downstream) if rho0_downstream else None
 
-    P_star_upstream = float(P_star_upstream) if P_star_upstream else None
-    T_star_upstream = float(T_star_upstream) if T_star_upstream else None
-    rho_star_upstream = float(rho_star_upstream) if rho_star_upstream else None
-    
-    P_star_downstream = float(P_star_downstream) if P_star_downstream else None
-    T_star_downstream = float(T_star_downstream) if T_star_downstream else None
-    rho_star_downstream = float(rho_star_downstream) if rho_star_downstream else None
+    P_star = float(P_star) if P_star else None
+    T_star = float(T_star) if T_star else None
+    rho_star = float(rho_star) if rho_star else None
     
     a_upstream = float(a_upstream) if a_upstream else None
     a_downstream = float(a_downstream) if a_downstream else None
     a0_upstream = float(a0_upstream) if a0_upstream else None
     a0_downstream = float(a0_downstream) if a0_downstream else None
-    a_star_upstream = float(a_star_upstream) if a_star_upstream else None
-    a_star_downstream = float(a_star_downstream) if a_star_downstream else None
+    a_star = float(a_star) if a_star else None
 
     # Determine specific gas constant
     if R_unit == "US":
@@ -270,9 +344,8 @@ def main():
 
     results = adiabatic_relations(R, gamma, q, M_upstream, M_downstream, T_upstream, T_downstream, \
         P_upstream, P_downstream, rho_upstream, rho_downstream, T0_upstream, T0_downstream, \
-        P0_upstream, P0_downstream, rho0_upstream, rho0_downstream, T_star_upstream, T_star_downstream, \
-        P_star_upstream, P_star_downstream, rho_star_upstream, rho_star_downstream, a_upstream, \
-        a_downstream, a0_upstream, a0_downstream, a_star_upstream, a_star_downstream)
+        P0_upstream, P0_downstream, rho0_upstream, rho0_downstream, T_star, P_star, rho_star, \
+        a_upstream, a_downstream, a0_upstream, a0_downstream, a_star)
 
     for key, value in results.items():
         if value is not None:
